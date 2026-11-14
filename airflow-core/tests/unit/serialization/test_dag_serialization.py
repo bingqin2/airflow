@@ -68,6 +68,7 @@ from airflow.sdk import (
     Asset,
     AssetAlias,
     BaseHook,
+    EventsTimetable,
     TaskGroup,
     TriggerRule,
     WeightRule,
@@ -801,6 +802,24 @@ class TestStringifiedDAGs:
         dag = get_timetable_based_simple_dag(timetable)
         roundtripped = DagSerialization.from_json(DagSerialization.to_json(dag))
         self.validate_deserialized_dag(roundtripped, dag)
+
+    @pytest.mark.db_test
+    @pytest.mark.parametrize(
+        ("description", "expected_summary"),
+        [
+            pytest.param(None, "2 events", id="no-description"),
+            pytest.param("Release days", "Release days", id="description"),
+        ],
+    )
+    def test_dag_roundtrip_from_sdk_events_timetable(self, description, expected_summary):
+        """A Dag scheduled with the Task SDK ``EventsTimetable`` can be serialized and deserialized."""
+        event_dates = [pendulum.datetime(2025, 1, 1, tz="UTC"), pendulum.datetime(2025, 6, 1, tz="UTC")]
+        dag = get_timetable_based_simple_dag(EventsTimetable(event_dates, description=description))
+
+        roundtripped = DagSerialization.from_json(DagSerialization.to_json(dag))
+
+        assert roundtripped.timetable.summary == expected_summary
+        assert roundtripped.timetable.event_dates == event_dates
 
     def validate_deserialized_dag(self, serialized_dag: SerializedDAG, dag: DAG):
         """

@@ -222,3 +222,21 @@ def test_timetable_without_description_after_serialization_is_the_same():
     assert deserialized.summary == summary
     assert deserialized.description == description
     assert deserialized.event_dates == EVENT_DATES
+
+
+@pytest.mark.parametrize("description", [None, "Example description"])
+def test_deserialize_without_summary(description: str | None):
+    """The Task SDK timetable is serialized without ``_summary``."""
+    expected = EventsTimetable(event_dates=EVENT_DATES_SORTED, description=description)
+    data = {
+        "event_dates": [x.isoformat(sep="T") for x in EVENT_DATES_SORTED],
+        "restrict_to_events": False,
+        "description": description,
+    }
+
+    deserialized = EventsTimetable.deserialize(data)
+
+    assert isinstance(deserialized, EventsTimetable)
+    assert deserialized.summary == expected.summary
+    assert deserialized.description == expected.description
+    assert deserialized.event_dates == EVENT_DATES_SORTED
